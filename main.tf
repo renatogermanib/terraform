@@ -1,20 +1,36 @@
-#definiendo provider
+#DEFINIENDO PROVIDER
 provider "aws"{
-  region     = "us-east-1"
+  region     = local.region
   #access_key = "own_access_key"
   #secret_key = "own_secret_key"
+
+  #todos los recursos que despliegue en aws tendrán los tags:
+  default_tags {
+    tags = local.tags
+  }
+
 }
 
-resource "aws_s3_bucket" "primero"{
-  bucket = "bucket-lab-tf-1"
-
-  tags = {
-    Name = "Mi primer bucket"
-    Environment = "Dev"
-    }
+#DEFINICIÓN DE CANTIDAD DE BUCKETS
+locals {
+  sb_number = ["1", "2", "3"]
 }
 
-resource "aws_s3_bucket_acl" "ejemplo-acl" {
-  bucket = aws_s3_bucket.primero.id
-  acl    = "private"
+#MÓDULO TERRAFORM PARA CREAR BUCKET S3
+module "s3" {
+  source      = "./modules/s3"
+  region      = local.region
+  bucket_name = "s3-${local.region}-${local.environment}-${local.sb_number[count.index]}"
+  count       = length(local.sb_number)
+  tags        = {
+    Name = "s3-${local.region}-${local.environment}-${local.sb_number[count.index]}"
+  }
+}
+
+output "s3_bucket_id" {
+  value = module.s3[*].s3_bucket_id
+}
+
+output "s3_bucket_arn" {
+  value = module.s3[*].s3_bucket_arn
 }
